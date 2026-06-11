@@ -1,0 +1,32 @@
+name: GitOps PR Validation
+
+on:
+  pull_request:
+    paths:
+      - 'manifests/**'
+      - 'argocd/**'
+
+jobs:
+  validate:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Kubeconform
+        run: |
+          curl -sSLo kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kc.tgz
+          sudo mv kubeconform /usr/local/bin/
+          rm kc.tgz
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          echo "Validating files in manifests/ folder..."
+          kubeconform -strict -summary manifests/
+
+      - name: Validate ArgoCD Application Manifests
+        run: |
+          echo "Validating files in argocd/ folder..."
+          kubeconform -strict -summary argocd/

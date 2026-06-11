@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: counter-code
+  namespace: counter-lab
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+data:
+  app.py: |
+    from flask import Flask
+    import redis
+    import os
+
+    app = Flask(__name__)
+    r = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis'), port=6379, decode_responses=True)
+
+    @app.route('/')
+    def index():
+        try:
+            count = r.incr('hits')
+            return f'''
+            <html>
+              <head>
+                <title>Visitor Counter</title>
+                <style>
+                  body {{ font-family: sans-serif; text-align: center; margin-top: 100px; background-color: #f8fafc; }}
+                  h1 {{ color: #1e3a8a; font-size: 3rem; margin-bottom: 20px; }}
+                  .counter {{ font-size: 4rem; color: #3b82f6; font-weight: bold; background: #e0f2fe; padding: 20px 40px; border-radius: 10px; display: inline-block; margin-top: 10px; }}
+                  p {{ font-size: 1.5rem; color: #475569; }}
+                </style>
+              </head>
+              <body>
+                <h1>Welcome to GitOps Web Counter!</h1>
+                <p>This page has been viewed:</p>
+                <div class="counter">{count} times</div>
+              </body>
+            </html>
+            '''
+        except Exception as e:
+            return f"Error connecting to Redis: {str(e)}"
+
+    if __name__ == "__main__":
+        app.run(host="0.0.0.0", port=5000)

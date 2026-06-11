@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: sync-waves-app
+  name: counter-app
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/G-03-XBrain-Phase-2/argocd-sync-waves-cuong
     targetRevision: HEAD
-    path: manifests/sync-waves-app
+    path: manifests/counter-app
   destination:
     server: https://kubernetes.default.svc
-    namespace: database-frontend-lab
+    namespace: counter-lab
   syncPolicy:
     automated:
       prune: true

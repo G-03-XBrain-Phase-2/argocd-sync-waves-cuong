@@ -8,8 +8,8 @@ spec:
   source:
     repoURL: https://github.com/G-03-XBrain-Phase-2/argocd-sync-waves-cuong
     targetRevision: HEAD
-    path: manifests
-  destination:
+    path: manifests/sync-waves-app
+  destination:sync-sync-
     server: https://kubernetes.default.svc
     namespace: database-frontend-lab
   syncPolicy:

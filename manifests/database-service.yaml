@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: database-service
-  namespace: default
+  namespace: database-frontend-lab
   annotations:
     argocd.argoproj.io/sync-wave: "-5"
 spec:

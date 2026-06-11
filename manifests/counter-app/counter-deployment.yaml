@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counter-web
+  namespace: counter-lab
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counter-web
+  template:
+    metadata:
+      labels:
+        app: counter-web
+    spec:
+      containers:
+      - name: web
+        image: python:3.9-slim
+        command: ["sh", "-c", "pip install flask redis && python /app/app.py"]
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: code-volume
+          mountPath: /app
+      volumes:
+      - name: code-volume
+        configMap:
+          name: counter-code

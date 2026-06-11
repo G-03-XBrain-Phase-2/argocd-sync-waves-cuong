@@ -24,9 +24,9 @@ jobs:
       - name: Validate Kubernetes Manifests
         run: |
           echo "Validating files in manifests/ folder..."
-          kubeconform -strict -summary -ignore-missing-resources manifests/
+          kubeconform -strict -summary -ignore-missing-schemas manifests/
 
       - name: Validate ArgoCD Application Manifests
         run: |
           echo "Validating files in argocd/ folder..."
-          kubeconform -strict -summary -ignore-missing-resources argocd/
+          kubeconform -strict -summary -ignore-missing-schemas argocd/

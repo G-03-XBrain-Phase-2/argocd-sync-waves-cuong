@@ -26,6 +26,6 @@ spec:
             command:
             - sh
             - -c
-            - "pgrep alpine"
+            - "pgrep sh"
           initialDelaySeconds: 2
           periodSeconds: 5

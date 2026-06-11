@@ -1,112 +1,173 @@
-# Lab GitOps Nâng Cao: App-of-Apps, Sync Waves & CI/CD Pipeline
+# BÁO CÁO MINH CHỨNG THỰC HÀNH (EVIDENCE REPORT) — TUẦN 9
 
-Dự án này là nơi lưu trữ và thực hành chuỗi các bài Lab nâng cao về GitOps sử dụng **Argo CD** (quản lý phân phối CD) phối hợp cùng **GitHub Actions** (tự động hóa kiểm tra CI).
-
----
-
-## 📂 Cấu Trúc Thư Mục Dự Án
-
-Dự án được cấu trúc theo mô hình **App-of-Apps** (Ứng dụng quản lý ứng dụng), chia nhỏ các ứng dụng độc lập vào các thư mục con riêng biệt để tăng tính mô-đun:
-
-```text
-lab-02-argocd-sync-waves/
-├── .github/
-│   └── workflows/
-│       └── validate.yml       # [CI] Tự động validate manifest bằng Kubeconform trên PR
-├── argocd/
-│   ├── root.yaml              # [Root App] Quản lý tất cả ứng dụng con qua thư mục argocd/apps/
-│   └── apps/
-│       ├── sync-waves-app.yaml# [Child App] Ứng dụng 1: Database + Frontend Portfolio
-│       └── counter-app.yaml   # [Child App] Ứng dụng 2: Visitor Counter (Flask + Redis)
-├── manifests/
-│   ├── sync-waves-app/        # Manifests ứng dụng 1 (Chạy ở namespace: database-frontend-lab)
-│   │   ├── namespace.yaml     # Wave -10
-│   │   ├── database-deployment.yaml # Wave -5 (Đã fix readinessProbe check 'pgrep sh')
-│   │   ├── database-service.yaml    # Wave -5
-│   │   ├── configmap.yaml     # Wave -3
-│   │   ├── frontend-deployment.yaml # Wave 0
-│   │   └── frontend-service.yaml    # Wave 0
-│   └── counter-app/           # Manifests ứng dụng 2 (Chạy ở namespace: counter-lab)
-│       ├── namespace.yaml     # Wave -10
-│       ├── redis-deployment.yaml    # Wave -5
-│       ├── redis-service.yaml # Wave -5
-│       ├── configmap.yaml     # Wave -3 (Chứa mã nguồn Flask Python chạy động)
-│       ├── counter-deployment.yaml  # Wave 0 (Chạy python:3.9-slim và cài requirements)
-│       └── counter-service.yaml     # Wave 0
-└── README.md                  # Hướng dẫn này
-```
+* **Học viên:** Trần Mạnh Cường
+* **Repository:** `https://github.com/G-03-XBrain-Phase-2/argocd-sync-waves-cuong`
+* **Môi trường thực hành:** Minikube (Docker driver)
 
 ---
 
-## 🛠️ Chi Tiết Các Bài Lab Đã Thực Hành
+## 📋 PHẦN 1: GITOPS, APP-OF-APPS & SYNC WAVES (BUỔI SÁNG)
 
-Dưới đây là tóm tắt các bài thực hành thiết yếu đã được triển khai và cấu hình thành công trong thư mục này:
+### 1. Lab 3: Kiểm tra tính năng Sync & Self-heal (Tự động phục hồi)
 
-### Lab 3: Kiểm tra tính năng Sync & Self-heal (Tự động phục hồi)
-* **Ý nghĩa:** Đảm bảo Git luôn là nguồn sự thật duy nhất (Single Source of Truth).
-* **Thực hành:** Khi cố tình sửa đổi thủ công tài nguyên trên Kubernetes (ví dụ: chạy lệnh `kubectl scale` tăng/giảm replicas của frontend), Argo CD phát hiện sự lệch cấu hình (drift) so với Git và ngay lập tức tự động đồng bộ (Self-heal) để kéo trạng thái cụm K8s về đúng cấu hình định nghĩa trên Git.
+* **Nội dung:** Thực hiện kiểm tra tính năng tự phục hồi và chống lệch cấu hình bằng cách:
+  1. Chạy lệnh xóa Pod thủ công trên cụm Kubernetes để kiểm tra cơ chế tự phục hồi của ReplicaSet.
+  2. Quan sát ArgoCD và cụm Kubernetes tự động khắc phục, thay thế Pod bị xóa bằng một Pod mới gần như ngay lập tức.
+  3. Kiểm tra nhật ký sự kiện (Events) trên ArgoCD để xác nhận hoạt động tự phục hồi.
 
-### Lab 4: Cơ chế Rollback chuẩn GitOps
-* **Ý nghĩa:** Hiểu cách quay lui phiên bản an toàn trong GitOps.
-* **Thực hành:** Thay vì sử dụng lệnh `kubectl rollout undo` (lệnh này sẽ bị tính năng Self-heal của Argo CD chặn lại và ghi đè ngược về phiên bản mới trên Git), chúng ta thực hiện Rollback chuẩn bằng cách tạo commit revert (`git revert HEAD`) và push lên Git. Argo CD sẽ tự động đồng bộ và rollback cụm K8s theo lịch sử Git.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  
+  **Ảnh 1: Lệnh xóa Pod thủ công trên cluster**
+  ![Lệnh xóa Pod](public/kubectldelete.png)
+  *(Mô tả: Sử dụng lệnh `kubectl delete pod` để xóa Pod thuộc ứng dụng `sync-waves-app`).*
 
-### Lab 5: Mô hình App-of-Apps (1 Root quản lý nhiều con)
-* **Ý nghĩa:** Tự động hóa hoàn toàn việc quản lý và phát hiện ứng dụng mới.
-* **Thực hành:** Tạo một Root Application (`root.yaml`) giám sát thư mục `argocd/apps/` trên Git. Khi muốn thêm ứng dụng con mới (như `counter-app.yaml`), chỉ cần đẩy file định nghĩa vào thư mục này, Root App sẽ tự động phát hiện và triển khai mà không cần tạo tay trên giao diện Argo CD.
+  **Ảnh 2: Pod mới được tự động tạo lập ngay lập tức**
+  ![Pod tự động tạo lại](public/selfheal.png)
+  *(Mô tả: Trong khi Pod cũ `database-589bc78d8d-gdcqj` đang trong trạng thái tắt (`Terminating`), cụm đã tự động khởi tạo Pod mới thay thế là `database-589bc78d8d-chht4` nhờ cơ chế self-heal).*
 
-### Lab 6: Quản lý thứ tự triển khai với Sync Waves
-* **Ý nghĩa:** Kiểm soát trình tự khởi chạy giữa các dịch vụ có tính phụ thuộc lẫn nhau.
-* **Trình tự triển khai:** `Namespace (Wave -10) -> Database/Redis (Wave -5) -> ConfigMap (Wave -3) -> Web App/Frontend (Wave 0)`
-* **Sửa lỗi Readiness Probe:** Khắc phục lỗi cấu hình kiểm tra của Database (đổi lệnh check từ `pgrep alpine` sang `pgrep sh`) để Kubelet báo cáo Pod Healthy, giúp Argo CD chuyển tiếp mượt mà sang Wave sau.
-
-### Lab 7: Thiết lập CI plan-on-PR (Kiểm tra cú pháp trước khi Merge)
-* **Ý nghĩa:** Tự động kiểm tra tính hợp lệ của manifest thông qua GitHub Actions và Kubeconform trên các Pull Request.
-* **Cấu hình tối ưu:** Sử dụng cờ `-ignore-missing-schemas` để Kubeconform bỏ qua kiểm tra schema đối với các tài nguyên tùy biến của Argo CD (như `Application` trong thư mục `argocd/`), tránh báo lỗi đỏ giả, trong khi vẫn kiểm tra nghiêm ngặt toàn bộ manifest chuẩn ở thư mục `manifests/`.
+  **Ảnh 3: Nhật ký sự kiện ghi nhận đồng bộ thành công**
+  ![Events ArgoCD](public/eventself.png)
+  *(Mô tả: Giao diện ArgoCD Events ghi nhận quá trình đồng bộ và tự động kiểm tra trạng thái tài nguyên hoạt động trơn tru).*
 
 ---
 
-## 💻 Hướng Dẫn Vận Hành & Lệnh Kiểm Tra
+### 2. Lab 4: Cơ chế Rollback chuẩn GitOps
 
-### 1. Áp dụng cấu hình GitOps (Nếu triển khai từ đầu)
-Chỉ cần chạy lệnh tạo Root Application, Argo CD sẽ làm phần việc còn lại:
-```bash
-kubectl apply -f argocd/root.yaml
-```
+* **Nội dung:** Thực hiện revert commit trên Git (`git revert HEAD`) và push lên repo. Quan sát ArgoCD đồng bộ và tự động rollback ứng dụng về phiên bản cũ an toàn.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Git Rollback History](path/to/anh_rollback_git.png)
+  *\*Chú thích: Anh chụp lại màn hình lịch sử commit trên GitHub hoặc Git Log trên terminal hiển thị commit revert, cùng với giao diện ArgoCD đã Sync về đúng commit ID đó.*
 
-### 2. Kiểm tra danh sách Application của Argo CD
-```bash
-kubectl get applications -n argocd
-```
-*Kết quả mong muốn:*
-```text
-NAME             SYNC STATUS   HEALTH STATUS
-root             Synced        Healthy
-sync-waves-app   Synced        Healthy
-counter-app      Synced        Healthy
-```
+---
 
-### 3. Kiểm tra tài nguyên dưới K8s Cluster
-Kiểm tra xem các pod và service của 2 ứng dụng đã chạy tốt và sẵn sàng chưa:
+### 3. Lab 5: Mô hình App-of-Apps
 
-* **Ứng dụng Portfolio (sync-waves-app):**
-  ```bash
-  kubectl get all -n database-frontend-lab
+* **Nội dung:** Root Application (`root.yaml`) giám sát thư mục `argocd/apps/`. Khi thêm ứng dụng con mới (`counter-app.yaml`), Root App tự động phát hiện và sinh ra app con trên cụm.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![App-of-Apps Tree](path/to/anh_app_of_apps.png)
+  *\*Chú thích: Anh chụp màn hình giao diện chính của ArgoCD hiển thị cây ứng dụng gồm Root Application kết nối tới các ứng dụng con (`sync-waves-app`, `counter-app`,...).*
+
+---
+
+### 4. Lab 6: Quản lý thứ tự triển khai với Sync Waves
+
+* **Nội dung:** Kiểm soát trình tự chạy resource: `Namespace (Wave -10) -> Database/Redis (Wave -5) -> ConfigMap (Wave -3) -> Web App/Frontend (Wave 0)`. Đã sửa lỗi readinessProbe cho DB (`pgrep sh`) để qua wave thành công.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Sync Waves Progress](path/to/anh_sync_waves.png)
+  *\*Chú thích: Anh chụp lại giao diện ArgoCD trong quá trình đồng bộ, hiển thị rõ tiến trình các resource được tạo lần lượt theo các lớp (Wave) khác nhau.*
+
+---
+
+### 5. Lab 7: Thiết lập CI plan-on-PR
+
+* **Nội dung:** Tự động validate file manifest Kubernetes và ứng dụng ArgoCD bằng Kubeconform tích hợp trong GitHub Actions khi có Pull Request.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![GitHub Actions Validation](path/to/anh_ci_pr.png)
+  *\*Chú thích: Anh chụp màn hình kết quả chạy thành công (tích xanh) của workflow `GitOps PR Validation` trên giao diện Pull Request ở GitHub.*
+
+---
+
+## 📊 PHẦN 2: OBSERVABILITY & CANARY DELIVERY (BUỔI CHIỀU)
+
+### 1. Lab 1: Cài đặt hạ tầng qua GitOps (Prometheus + Argo Rollouts)
+
+* **Nội dung:** Cài đặt bộ giám sát và điều phối Canary thông qua khai báo Git. Sửa lỗi xung đột cấu hình Default Datasource của Loki để chạy thành công.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Infrastructure Apps Synced](path/to/anh_infra_synced.png)
+  *\*Chú thích: Anh chụp giao diện ArgoCD hiển thị hai ứng dụng `kube-prometheus-stack` và `argo-rollouts` đều ở trạng thái xanh lá (`Synced` và `Healthy`).*
+
+  ![Infrastructure Pods Running](path/to/anh_infra_pods.png)
+  *\*Chú thích: Anh chụp lại kết quả chạy lệnh `kubectl get pods -n monitoring` và `kubectl get pods -n argo-rollouts` hiển thị toàn bộ Pods của Prometheus, Grafana, Loki và Rollout controller đều ở trạng thái `Running`.*
+
+---
+
+### 2. Lab 2: Viết ứng dụng API Flask có export `/metrics`
+
+* **Nội dung:** Viết code tích hợp `prometheus-flask-exporter` hỗ trợ route `/metrics` và build Docker Image `w9-api:1` nạp vào Minikube.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Loaded Docker Image](path/to/anh_image_load.png)
+  *\*Chú thích: Anh chụp lại terminal sau khi chạy lệnh `minikube image ls -p w9 | grep w9-api` cho thấy image `w9-api:1` đã có sẵn trong cụm.*
+
+---
+
+### 3. Lab 3: Triển khai Manifest API dạng Rollout & Xem Metric
+
+* **Nội dung:** Tạo traffic giả lập gửi liên tục vào API. Kiểm tra targets và biểu đồ tăng trưởng request trên Prometheus.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Prometheus Target UP](path/to/anh_prometheus_target.png)
+  *\*Chú thích: Anh chụp giao diện Prometheus (`http://localhost:9090`) phần Status -> Targets cho thấy target `demo/api` đang hiển thị trạng thái `UP`.*
+
+  ![Prometheus Metrics Query](path/to/anh_metrics_query.png)
+  *\*Chú thích: Anh chụp giao diện Prometheus khi chạy câu truy vấn `flask_http_request_total{namespace="demo"}` hiển thị bảng/biểu đồ các chỉ số request tăng dần liên tục.*
+
+---
+
+### 4. Lab 4: Chạy Canary duyệt thủ công (Manual Canary)
+
+* **Nội dung:** Đẩy phiên bản `v2` của API. Quan sát tiến trình tạm dừng ở mức 25% traffic và tiến hành dùng CLI promote lên 100% thủ công.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Canary Paused 25%](path/to/anh_canary_paused.png)
+  *\*Chú thích: Anh chụp màn hình terminal lệnh `kubectl argo rollouts get rollout api -n demo --watch` hiển thị trạng thái `Paused` ở mức 25% traffic.*
+
+  ![Canary Promoted 100%](path/to/anh_canary_promoted.png)
+  *\*Chú thích: Anh chụp màn hình terminal sau khi chạy lệnh `promote` cho thấy Rollout đã chuyển đổi hoàn toàn và chạy đủ 100% ở bản mới `v2`.*
+
+---
+
+## 🏆 PHẦN 3: THỬ THÁCH LỚN (CHALLENGE: "SHIP SMARTLY")
+
+Phần này ghi nhận kết quả hoàn thiện của hệ thống tự động hoá hoàn toàn quá trình Canary và đo lường cảnh báo lỗi (SLO Alert).
+
+### 1. Trạng thái GitOps đồng bộ (No Drift)
+
+* **Nội dung:** Mọi cấu hình (bao gồm `AnalysisTemplate` và SLO Rules) đều được quản lý qua Git và đồng bộ qua ArgoCD.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![GitOps Clean Sync](path/to/anh_challenge_synced.png)
+  *\*Chú thích: Anh chụp giao diện ứng dụng `api` trên ArgoCD hiển thị trạng thái Synced xanh sạch.*
+
+---
+
+### 2. Minh chứng Canary tự động Abort & Rollback (Quan trọng nhất)
+
+* **Nội dung:** Nâng phiên bản mới và cấu hình `ERROR_RATE = 0.1` (tiêm lỗi). Quan sát `AnalysisTemplate` truy vấn Prometheus phát hiện chất lượng lỗi $\rightarrow$ tự động kích hoạt hủy bỏ (Abort) và rollback về bản cũ trong vòng dưới 3 phút mà không cần người bấm phím.
+* **📸 MINH CHỨNG HÌNH ẢNH HOẶC CLIP:**
+  ![Auto-abort CLI Watch](path/to/anh_auto_abort.png)
+  *\*Chú thích: Anh chụp lại màn hình terminal CLI watch hiển thị trạng thái `Degraded` / `Aborted` kèm theo lịch sử các lần đo đạc của `AnalysisRun` bị thất bại và tự động chuyển hướng traffic về lại phiên bản cũ.*
+
+---
+
+### 3. Minh chứng Cảnh báo (Alert) gửi về Email cá nhân
+
+* **Nội dung:** Kích hoạt cảnh báo đỏ dựa trên SLO và kiểm tra hòm thư cá nhân.
+* **📸 MINH CHỨNG HÌNH ẢNH:**
+  ![Personal Email Alert](path/to/anh_email_alert.png)
+  *\*Chú thích: Anh chụp lại giao diện **Hộp thư email cá nhân** hiển thị bức thư thông báo cảnh báo lỗi từ Alertmanager của hệ thống.*
+
+---
+
+### 📝 4. Giải thích chi tiết cấu hình đo lường & ngưỡng (SLO & Alert)
+
+#### a) Ngưỡng đo lường tự động của Canary (AnalysisTemplate)
+
+* **Câu truy vấn PromQL dùng trong AnalysisTemplate:**
+
+  ```promql
+  # Điền câu query tính success rate anh dùng ở đây. Ví dụ:
+  sum(rate(flask_http_request_duration_seconds_count{status!~"5..", pod=~"api-.*"}[2m])) / sum(rate(flask_http_request_duration_seconds_count{pod=~"api-.*"}[2m]))
   ```
-* **Ứng dụng Đếm Lượt Truy Cập (counter-app):**
-  ```bash
-  kubectl get all -n counter-lab
+
+* **Giải thích logic & Ngưỡng:**
+  * *Ngưỡng đạt:* Tỉ lệ thành công (Success Rate) phải $\ge 95\%$ (`result >= 0.95`).
+  * *Cơ chế đánh giá:* Đo đạc định kỳ mỗi `30s` một lần. Nếu kết quả không đạt quá `3` lần (`failureLimit: 3`), hệ thống sẽ lập tức abort và rollback.
+
+#### b) Cấu hình SLO & Alert cảnh báo
+
+* **Chỉ số đo lường (SLI):** ... *(ví dụ: Tỷ lệ request HTTP thành công trên tổng số request trong vòng 5 phút)*
+* **Mục tiêu đặt ra (SLO):** ... *(ví dụ: 99.0% request phải thành công)*
+* **Cú pháp quy tắc Alert (PrometheusRule):**
+
+  ```yaml
+  # Anh có thể dán đoạn cấu hình Alert Rule ở đây
   ```
 
-### 4. Mở kết nối và truy cập ứng dụng trên Trình duyệt (Port-forward)
-Vì chạy trên môi trường local (như Minikube/Kind), bạn cần forward cổng từ máy cá nhân vào Service của K8s để mở trình duyệt:
-
-* **Mở trang Portfolio (Frontend):**
-  ```bash
-  kubectl port-forward svc/frontend-service -n database-frontend-lab 8080:80
-  # Truy cập trên trình duyệt: http://localhost:8080
-  ```
-* **Mở trang Web Đếm Lượt Truy Cập (Visitor Counter):**
-  ```bash
-  kubectl port-forward svc/counter-service -n counter-lab 8081:5000
-  # Truy cập trên trình duyệt: http://localhost:8081 (f5 liên tục để xem số lượng tăng lên)
-  ```
+* **Giải thích hoạt động:** Khi lỗi được inject làm chất lượng tụt dưới ngưỡng SLO $\rightarrow$ Alert rule chuyển sang trạng thái `Firing` $\rightarrow$ Alertmanager tiếp nhận và gửi mail về hòm thư cấu hình sẵn.

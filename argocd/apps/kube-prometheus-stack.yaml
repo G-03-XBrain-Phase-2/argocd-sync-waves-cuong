@@ -20,8 +20,8 @@ spec:
             global:
               smtp_smarthost: 'smtp.gmail.com:587'
               smtp_from: 'alertmanager@example.com'
-              smtp_auth_username: 'YOUR_EMAIL@gmail.com'
-              smtp_auth_password: 'YOUR_APP_PASSWORD'
+              smtp_auth_username: 'asmrcreator312@gmail.com'
+              smtp_auth_password: 'uitygvsmmodpchis'
               smtp_require_tls: true
             route:
               group_by: ['alertname']
@@ -32,7 +32,7 @@ spec:
             receivers:
             - name: 'email'
               email_configs:
-              - to: 'YOUR_EMAIL@gmail.com'
+              - to: 'asmrcreator312@gmail.com'
                 send_resolved: true
   destination:
     server: https://kubernetes.default.svc

@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-slo-alerts
+  namespace: demo
+  labels:
+    role: alert-rules
+spec:
+  groups:
+  - name: api-alerts
+    rules:
+    - alert: APISuccessRateLow
+      expr: |
+        sum(rate(flask_http_request_duration_seconds_count{status!~"5..", pod=~"api-.*"}[5m])) 
+        / 
+        sum(rate(flask_http_request_duration_seconds_count{pod=~"api-.*"}[5m])) < 0.95
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "API Success Rate is low: {{ $value }}"
+        description: "The success rate of the API service is below 95% for the last 5 minutes."

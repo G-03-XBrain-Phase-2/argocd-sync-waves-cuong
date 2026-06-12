@@ -19,7 +19,7 @@ spec:
           config:
             global:
               smtp_smarthost: 'smtp.gmail.com:587'
-              smtp_from: 'alertmanager@example.com'
+              smtp_from: 'asmrcreator312@gmail.com'
               smtp_auth_username: 'asmrcreator312@gmail.com'
               smtp_auth_password: 'uitygvsmmodpchis'
               smtp_require_tls: true

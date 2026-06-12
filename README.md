@@ -195,22 +195,45 @@ Phần này ghi nhận kết quả hoàn thiện của hệ thống tự động
 * **Câu truy vấn PromQL dùng trong AnalysisTemplate:**
 
   ```promql
-  # Điền câu query tính success rate anh dùng ở đây. Ví dụ:
-  sum(rate(flask_http_request_duration_seconds_count{status!~"5..", pod=~"api-.*"}[2m])) / sum(rate(flask_http_request_duration_seconds_count{pod=~"api-.*"}[2m]))
+  sum(rate(flask_http_request_duration_seconds_count{status!~"5..", pod=~"api-.*"}[2m])) 
+  / 
+  sum(rate(flask_http_request_duration_seconds_count{pod=~"api-.*"}[2m]))
   ```
 
 * **Giải thích logic & Ngưỡng:**
   * *Ngưỡng đạt:* Tỉ lệ thành công (Success Rate) phải >= 95% (`result >= 0.95`).
-  * *Cơ chế đánh giá:* Đo đạc định kỳ mỗi 30s một lần. Nếu kết quả không đạt quá 3 lần (`failureLimit: 3`), hệ thống sẽ lập tức abort và rollback.
+  * *Cơ chế đánh giá:* Đo đạc định kỳ mỗi 30s một lần. Nếu kết quả không đạt quá 3 lần (`failureLimit: 3`), hệ thống sẽ lập tức kích hoạt tự động hủy bỏ (Abort) và rollback về phiên bản cũ.
 
 #### b) Cấu hình SLO & Alert cảnh báo
 
-* **Chỉ số đo lường (SLI):** ... *(ví dụ: Tỷ lệ request HTTP thành công trên tổng số request trong vòng 5 phút)*
-* **Mục tiêu đặt ra (SLO):** ... *(ví dụ: 99.0% request phải thành công)*
+* **Chỉ số đo lường (SLI):** Tỷ lệ các request thành công (không có lỗi 5xx) trên tổng số request HTTP gửi đến dịch vụ API trong vòng 5 phút:
+  $$\text{SLI} = \frac{\sum \text{rate}(flask\_http\_request\_duration\_seconds\_count\{status \ne 5xx\})[5m]}{\sum \text{rate}(flask\_http\_request\_duration\_seconds\_count)[5m]}$$
+* **Mục tiêu đặt ra (SLO):** Tỷ lệ request thành công phải đạt tối thiểu 95.0% trong khoảng thời gian đánh giá 5 phút.
 * **Cú pháp quy tắc Alert (PrometheusRule):**
 
   ```yaml
-  # Anh có thể dán đoạn cấu hình Alert Rule ở đây
+  apiVersion: monitoring.coreos.com/v1
+  kind: PrometheusRule
+  metadata:
+    name: api-slo-alerts
+    namespace: demo
+    labels:
+      role: alert-rules
+  spec:
+    groups:
+    - name: api-alerts
+      rules:
+      - alert: APISuccessRateLow
+        expr: |
+          sum(rate(flask_http_request_duration_seconds_count{status!~"5..", pod=~"api-.*"}[5m])) 
+          / 
+          sum(rate(flask_http_request_duration_seconds_count{pod=~"api-.*"}[5m])) < 0.95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API Success Rate is low: {{ $value }}"
+          description: "The success rate of the API service is below 95% for the last 5 minutes."
   ```
 
 * **Giải thích hoạt động:** Khi lỗi được inject làm chất lượng tụt dưới ngưỡng SLO, Alert rule chuyển sang trạng thái `Firing`, sau đó Alertmanager tiếp nhận và gửi mail về hòm thư cấu hình sẵn.

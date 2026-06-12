@@ -34,6 +34,7 @@ spec:
               email_configs:
               - to: 'asmrcreator312@gmail.com'
                 send_resolved: true
+            - name: 'null'
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

@@ -1,4 +1,4 @@
-# BÁO CÁO MINH CHỨNG THỰC HÀNH (EVIDENCE REPORT) — TUẦN 9
+# EVIDENCE REPORT — TUẦN 9
 
 * **Học viên:** Trần Mạnh Cường
 * **Repository:** `https://github.com/G-03-XBrain-Phase-2/argocd-sync-waves-cuong`
@@ -6,7 +6,7 @@
 
 ---
 
-## PHẦN 1: GITOPS, APP-OF-APPS & SYNC WAVES (BUỔI SÁNG)
+## PHẦN 1: GITOPS, APP-OF-APPS & SYNC WAVES
 
 ### 1. Lab 3: Kiểm tra tính năng Sync & Self-heal (Tự động phục hồi)
 
@@ -87,7 +87,7 @@
 
 ---
 
-## PHẦN 2: OBSERVABILITY & CANARY DELIVERY (BUỔI CHIỀU)
+## PHẦN 2: OBSERVABILITY & CANARY DELIVERY
 
 ### 1. Lab 1: Cài đặt hạ tầng qua GitOps (Prometheus + Argo Rollouts)
 
@@ -165,7 +165,7 @@ Phần này ghi nhận kết quả hoàn thiện của hệ thống tự động
 
 * **Nội dung:** Mọi cấu hình (bao gồm `AnalysisTemplate` và SLO Rules) đều được quản lý qua Git và đồng bộ qua ArgoCD.
 * **MINH CHỨNG HÌNH ẢNH:**
-  ![GitOps Clean Sync](path/to/anh_challenge_synced.png)
+  ![GitOps Clean Sync](public/challenge-synced.png)
   *(Mô tả: Ảnh chụp giao diện ứng dụng `api` trên ArgoCD hiển thị trạng thái Synced xanh sạch).*
 
 ---
@@ -174,7 +174,7 @@ Phần này ghi nhận kết quả hoàn thiện của hệ thống tự động
 
 * **Nội dung:** Nâng phiên bản mới và cấu hình `ERROR_RATE = 0.1` (tiêm lỗi). Quan sát `AnalysisTemplate` truy vấn Prometheus phát hiện chất lượng lỗi, từ đó tự động kích hoạt hủy bỏ (Abort) và rollback về bản cũ trong vòng dưới 3 phút mà không cần người bấm phím.
 * **MINH CHỨNG HÌNH ẢNH HOẶC CLIP:**
-  ![Auto-abort CLI Watch](path/to/anh_auto_abort.png)
+  ![Auto-abort CLI Watch](public/auto-abort.png)
   *(Mô tả: Ảnh chụp lại màn hình terminal CLI watch hiển thị trạng thái `Degraded` / `Aborted` kèm theo lịch sử các lần đo đạc của `AnalysisRun` bị thất bại và tự động chuyển hướng traffic về lại phiên bản cũ).*
 
 ---
@@ -183,7 +183,7 @@ Phần này ghi nhận kết quả hoàn thiện của hệ thống tự động
 
 * **Nội dung:** Kích hoạt cảnh báo đỏ dựa trên SLO và kiểm tra hòm thư cá nhân.
 * **MINH CHỨNG HÌNH ẢNH:**
-  ![Personal Email Alert](path/to/anh_email_alert.png)
+  ![Personal Email Alert](public/api-email-alert.png)
   *(Mô tả: Ảnh chụp lại giao diện Hộp thư email cá nhân hiển thị bức thư thông báo cảnh báo lỗi từ Alertmanager của hệ thống).*
 
 ---
